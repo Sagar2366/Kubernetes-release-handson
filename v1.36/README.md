@@ -1,6 +1,6 @@
 # Kubernetes v1.36 "Haru"
 
-**70 enhancements** | [Official Blog](https://kubernetes.io/blog/2026/04/22/kubernetes-v1-36-release/) | [Full Changelog](https://github.com/kubernetes/kubernetes/blob/master/CHANGELOG/CHANGELOG-1.36.md)
+**70 enhancements** | [Official Blog](https://kubernetes.io/blog/2026/04/22/kubernetes-v1-36-release/) | [Full Changelog](https://github.com/kubernetes/kubernetes/blob/master/CHANGELOG/CHANGELOG-1.36.md) | [Upgrade Guide (v1.35 → v1.36)](UPGRADE-GUIDE.md)
 
 ## Features Covered
 
@@ -12,6 +12,30 @@
 | 04 | [OCI VolumeSource](04-oci-volumesource/) | GA | Live demo |
 | 05 | [MutatingAdmissionPolicy (CEL)](05-mutating-admission-policy/) | GA | Live demo |
 | 06 | [DRA GPU Scheduling](06-dra-gpu-scheduling/) | GA+Beta | YAML walkthrough (no GPU needed) |
+
+### 01 - In-Place Pod Vertical Scaling (Beta)
+
+Change a running pod's CPU/memory requests and limits **without restarting the container**. The container ID stays the same, connections are preserved, and there's zero downtime. Previously, any resource change required deleting and recreating the pod.
+
+### 02 - User Namespaces in Pods (GA)
+
+Run containers as `root` inside the pod while mapping to an **unprivileged UID on the host**. A container compromise no longer gives the attacker root on the node. Enable with `hostUsers: false` in the pod spec -- no cluster-wide config needed.
+
+### 03 - HPA Scale-to-Zero (Alpha)
+
+The Horizontal Pod Autoscaler can now scale a Deployment all the way down to **zero replicas** when there's no traffic or load. Ideal for dev/staging environments, batch queues, and cost optimization. Requires the `HPAScaleToZero` feature gate.
+
+### 04 - OCI VolumeSource (GA)
+
+Mount any OCI image as a **read-only volume** inside a pod, completely independent of the application container image. Use cases include ML model weights, config bundles, static assets, and plugin JARs -- no more initContainer + wget + emptyDir hacks.
+
+### 05 - MutatingAdmissionPolicy (GA)
+
+Define mutation rules using **CEL expressions** directly in the API, replacing the need for webhook servers. No binary to build, no Deployment to manage, no TLS certificates to rotate. The example injects a default `env: dev` label on matching resources.
+
+### 06 - DRA GPU Scheduling (GA + Beta)
+
+Dynamic Resource Allocation brings structured device management to Kubernetes. New in 1.36: **prioritized alternatives** (fall back from H100 → A100 → 2xT4), **device taints** (quarantine degraded GPUs), and **partitionable devices** (MIG slices). Requires GPU hardware -- this folder contains reference YAMLs only.
 
 ## Prerequisites
 
