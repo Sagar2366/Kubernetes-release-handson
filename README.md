@@ -2,9 +2,15 @@
 
 Hands-on demos, manifests, and scripts for Kubernetes releases. Each release gets its own folder with runnable examples you can use to learn, teach, or record videos.
 
+## Releases
+
+| Version | Codename | Release Date | Folder |
+|---------|----------|-------------|--------|
+| v1.36 | Haru | April 22, 2026 | [v1.36/](v1.36/) |
+
 ---
 
-## Kubernetes v1.36 "Haru" (April 22, 2026)
+## v1.36 "Haru"
 
 **70 enhancements** | [Official Blog](https://kubernetes.io/blog/2026/04/22/kubernetes-v1-36-release/) | [Full Changelog](https://github.com/kubernetes/kubernetes/blob/master/CHANGELOG/CHANGELOG-1.36.md)
 
@@ -12,12 +18,12 @@ Hands-on demos, manifests, and scripts for Kubernetes releases. Each release get
 
 | # | Feature | Stage | Demo? |
 |---|---------|-------|-------|
-| 01 | [In-Place Pod Vertical Scaling](01-inplace-pod-resize/) | Beta | Live demo |
-| 02 | [User Namespaces in Pods](02-user-namespaces/) | GA | Live demo |
-| 03 | [HPA Scale-to-Zero](03-hpa-scale-to-zero/) | Alpha | Live demo (with load generation) |
-| 04 | [OCI VolumeSource](04-oci-volumesource/) | GA | Live demo |
-| 05 | [MutatingAdmissionPolicy (CEL)](05-mutating-admission-policy/) | GA | Live demo |
-| 06 | [DRA GPU Scheduling](06-dra-gpu-scheduling/) | GA+Beta | YAML walkthrough (no GPU needed) |
+| 01 | [In-Place Pod Vertical Scaling](v1.36/01-inplace-pod-resize/) | Beta | Live demo |
+| 02 | [User Namespaces in Pods](v1.36/02-user-namespaces/) | GA | Live demo |
+| 03 | [HPA Scale-to-Zero](v1.36/03-hpa-scale-to-zero/) | Alpha | Live demo (with load generation) |
+| 04 | [OCI VolumeSource](v1.36/04-oci-volumesource/) | GA | Live demo |
+| 05 | [MutatingAdmissionPolicy (CEL)](v1.36/05-mutating-admission-policy/) | GA | Live demo |
+| 06 | [DRA GPU Scheduling](v1.36/06-dra-gpu-scheduling/) | GA+Beta | YAML walkthrough (no GPU needed) |
 
 ### Prerequisites
 
@@ -31,7 +37,7 @@ Hands-on demos, manifests, and scripts for Kubernetes releases. Each release get
 ```bash
 # 1. Clone the repo
 git clone https://github.com/Sagar2366/Kubernetes-release-handson.git
-cd Kubernetes-release-handson
+cd Kubernetes-release-handson/v1.36
 
 # 2. Create the kind cluster (single cluster for ALL demos)
 ./00-kind-cluster/create-cluster.sh
@@ -50,7 +56,7 @@ cd Kubernetes-release-handson
 ### Folder Structure
 
 ```
-.
+v1.36/
 ├── 00-kind-cluster/                        # Cluster setup (run FIRST)
 │   ├── kind-config.yaml                    # Single cluster config (all features)
 │   ├── create-cluster.sh                   # Creates cluster + installs metrics-server
