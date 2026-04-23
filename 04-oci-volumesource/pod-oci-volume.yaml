@@ -1,0 +1,36 @@
+# OCI VolumeSource / ImageVolume (GA in 1.36)
+#
+# Mount an OCI image or artifact directly as a read-only volume.
+# Using quay.io/crio/artifact:v2 -- a purpose-built OCI test artifact
+# from the CRI-O project, designed to demonstrate OCI volume mounting.
+#
+# Docs:
+#   Image volumes:     https://kubernetes.io/docs/concepts/storage/volumes/#image
+#   KEP #4639:         https://github.com/kubernetes/enhancements/tree/master/keps/sig-node/4639-oci-volume-source
+#   OCI image spec:    https://github.com/opencontainers/image-spec/blob/main/manifest.md
+#   Volume types:      https://kubernetes.io/docs/concepts/storage/volumes/
+#   CRI-O artifacts:   https://quay.io/repository/crio/artifact
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: image-volume
+spec:
+  containers:
+  - name: shell
+    image: debian:stable-slim             # Lightweight image with shell for inspection
+    command: ["sleep", "infinity"]
+    volumeMounts:
+    - name: volume
+      mountPath: /volume                  # OCI artifact content appears here
+
+  volumes:
+  - name: volume
+    image:                                # NEW volume type in 1.36
+      reference: quay.io/crio/artifact:v2 # Purpose-built OCI test artifact
+                                          # In production, this could be:
+                                          #   registry.io/models/llama:v3       (ML model)
+                                          #   registry.io/configs/app:v2.1      (config bundle)
+                                          #   registry.io/datasets/training:q4  (dataset)
+      pullPolicy: IfNotPresent            # Same pull policies as container images
+                                          # Docs: https://kubernetes.io/docs/concepts/containers/images/#image-pull-policy

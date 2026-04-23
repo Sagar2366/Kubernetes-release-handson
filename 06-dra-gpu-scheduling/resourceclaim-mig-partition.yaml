@@ -1,0 +1,40 @@
+# Partitionable Devices -- MIG GPU Partition Request (Beta in 1.36)
+#
+# Request a SLICE of a GPU instead of the whole thing.
+# DRA now natively models GPU partitioning (NVIDIA MIG, Intel SR-IOV, etc.)
+#
+# NVIDIA MIG (Multi-Instance GPU) on A100/H100:
+#   A single A100 (80GB) can be split into:
+#     7x 1g.10gb slices  -- 7 small inference workloads
+#     3x 2g.20gb slices  -- 3 medium workloads
+#     1x 4g.40gb slice   -- 1 large training job
+#
+# The scheduler understands these are PARTITIONS of the same physical device.
+# Allocating a 4g.40gb slice consumes capacity that could be 4x 1g.10gb slices.
+# This prevents overcommit and enables bin-packing across partition sizes.
+#
+# Cost impact: 5-7x more inference workloads per physical GPU.
+#
+# Docs:
+#   DRA overview:         https://kubernetes.io/docs/concepts/scheduling-eviction/dynamic-resource-allocation/
+#   Partitionable devices: https://kubernetes.io/docs/concepts/scheduling-eviction/dynamic-resource-allocation/#scalable-device-configuration
+#   KEP #5004:            https://github.com/kubernetes/enhancements/tree/master/keps/sig-node/5004-dra-partitionable-devices
+#   NVIDIA MIG guide:     https://docs.nvidia.com/datacenter/tesla/mig-user-guide/
+#   NVIDIA DRA driver:    https://github.com/NVIDIA/k8s-dra-driver
+
+apiVersion: resource.k8s.io/v1
+kind: ResourceClaim
+metadata:
+  name: inference-small
+spec:
+  devices:
+    requests:
+    - name: gpu-slice
+      deviceClassName: nvidia-a100-mig            # DeviceClass for MIG-partitioned A100
+                                                  # Published by NVIDIA's DRA driver
+      selectors:
+      - cel:
+          expression: "device.attributes['mig-profile'] == '1g.10gb'"
+          # Request the smallest MIG partition: 1 GPU instance, 10GB memory
+          # Perfect for small inference models that don't need a full GPU
+          # Other profiles: 2g.20gb, 3g.40gb, 4g.40gb, 7g.80gb

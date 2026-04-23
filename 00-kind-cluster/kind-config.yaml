@@ -1,0 +1,25 @@
+# Kind Cluster Configuration -- Kubernetes 1.36 (Single Cluster for All Demos)
+#
+# One cluster covers everything:
+#   - GA features (User Namespaces, OCI VolumeSource, MutatingAdmissionPolicy) work out of the box
+#   - Beta features (In-Place Pod Resize) are enabled by default
+#   - HPAScaleToZero feature gate enabled for HPA scale-to-zero demo
+#
+# Docs:
+#   Kind config:       https://kind.sigs.k8s.io/docs/user/configuration/
+#   K8s 1.36 release:  https://kubernetes.io/blog/2026/04/22/kubernetes-v1-36-release/
+#   Feature gates:     https://kubernetes.io/docs/reference/command-line-tools-reference/feature-gates/
+
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+
+featureGates:
+  HPAScaleToZero: true            # HPA can scale Deployments to 0 replicas (KEP #2021)
+                                  # All other demo features are GA or Beta (enabled by default)
+
+nodes:
+- role: control-plane
+  image: kindest/node:v1.36.0     # Official kind node image for K8s 1.36
+
+- role: worker
+  image: kindest/node:v1.36.0

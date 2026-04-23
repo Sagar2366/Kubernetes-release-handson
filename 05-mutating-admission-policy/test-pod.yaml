@@ -1,0 +1,19 @@
+# Test Pod -- Has "mutator: policy" label but NO "env" label
+#
+# The MutatingAdmissionPolicy should inject "env: dev" automatically.
+# Uses registry.k8s.io/pause:3.10 -- the lightest possible K8s image.
+#
+# Verify with:
+#   kubectl get pod policy-no-env -o jsonpath='{.metadata.labels}' | jq
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: policy-no-env
+  labels:
+    mutator: policy               # Opt-in label -- policy binding matches this
+    # NOTE: no "env" label here -- the policy will inject "env: dev"
+spec:
+  containers:
+  - name: pause
+    image: registry.k8s.io/pause:3.10   # Ultra-lightweight -- just pauses

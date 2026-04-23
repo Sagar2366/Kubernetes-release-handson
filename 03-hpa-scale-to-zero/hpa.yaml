@@ -1,0 +1,38 @@
+# HPA Scale-to-Zero -- HorizontalPodAutoscaler
+#
+# minReplicas: 0 is the game-changer. Before 1.36, the minimum was 1.
+# When CPU utilization drops to zero (no traffic), HPA scales to 0 pods.
+# When load arrives, HPA scales back up.
+#
+# This uses CPU resource metrics (via metrics-server), NOT external metrics.
+# Make sure metrics-server is installed (see 00-kind-cluster/create-cluster.sh).
+#
+# Requires: HPAScaleToZero feature gate (enabled in our kind config)
+#
+# Docs:
+#   HPA:              https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/
+#   HPA API v2:       https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/horizontal-pod-autoscaler-v2/
+#   HPA walkthrough:  https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale-walkthrough/
+#   KEP #2021:        https://github.com/kubernetes/enhancements/tree/master/keps/sig-autoscaling/2021-hpa-scale-to-zero
+
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: hpa-demo
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: hpa-demo
+
+  minReplicas: 0                  # NEW IN 1.36! Scale all the way to zero.
+  maxReplicas: 5
+
+  metrics:
+  - type: Resource                # Using CPU metrics from metrics-server
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 50    # Target 50% CPU utilization
+                                  # Above 50% = scale up, 0% = scale to 0

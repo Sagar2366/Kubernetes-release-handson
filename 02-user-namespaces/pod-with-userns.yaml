@@ -1,0 +1,30 @@
+# User Namespaces -- Pod WITH User Namespace Isolation (GA in 1.36)
+#
+# hostUsers: false enables user namespace remapping.
+# Root (UID 0) inside the container maps to a high unprivileged UID on the host.
+# Even if an attacker escapes the container, they have zero host privileges.
+#
+# We use kubectl debug node/ to prove the process runs as a HIGH UID on the host.
+#
+# Docs:
+#   User namespaces:   https://kubernetes.io/docs/concepts/workloads/pods/user-namespaces/
+#   KEP #127:          https://github.com/kubernetes/enhancements/tree/master/keps/sig-node/127-user-namespaces
+#   Pod security:      https://kubernetes.io/docs/concepts/security/pod-security-standards/
+#   Linux user_ns:     https://man7.org/linux/man-pages/man7/user_namespaces.7.html
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: with-userns
+  namespace: userns-demo
+spec:
+  hostUsers: false              # KEY FIELD: enables user namespace isolation
+                                # Container UIDs are remapped to unprivileged host UIDs
+  containers:
+  - name: debug
+    image: busybox:1.36
+    command: ["sh", "-c", "sleep 3600"]
+    securityContext:
+      runAsUser: 0              # Root INSIDE container, but mapped to high UID on host
+      runAsGroup: 0
+  restartPolicy: Never

@@ -1,0 +1,40 @@
+# Device Taint Rule -- Quarantine Degraded GPUs (Beta in 1.36)
+#
+# Same mental model as node taints, but applied to individual DEVICES.
+# Automatically marks GPUs with hardware issues so the scheduler avoids them
+# for production workloads, while dev/test workloads can still use them.
+#
+# Before 1.36: If one GPU on a multi-GPU node had ECC errors, you had to
+# cordon the ENTIRE node, disrupting all pods (even CPU-only ones).
+# After 1.36:  Taint just the bad GPU. Everything else keeps running.
+#
+# Taint effects (same as node taints):
+#   NoSchedule    -- don't schedule new workloads on this device
+#   PreferNoSchedule -- try to avoid, but allow if necessary
+#   NoExecute     -- evict existing workloads AND prevent new ones
+#
+# Docs:
+#   DRA overview:       https://kubernetes.io/docs/concepts/scheduling-eviction/dynamic-resource-allocation/
+#   Device taints:      https://kubernetes.io/docs/concepts/scheduling-eviction/dynamic-resource-allocation/#scalable-device-configuration
+#   Node taints (analogy): https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/
+#   KEP #5055:          https://github.com/kubernetes/enhancements/tree/master/keps/sig-node/5055-scalable-dra-device-configuration
+#   ECC errors explained: https://docs.nvidia.com/deploy/a100-gpu-mem-error-mgmt/index.html
+
+apiVersion: resource.k8s.io/v1beta2              # Beta API in 1.36
+kind: DeviceTaintRule
+metadata:
+  name: gpu-ecc-degraded
+spec:
+  deviceSelector:
+    cel:
+      expression: "device.attributes['ecc_errors'].asInteger() > 100"
+      # CEL expression evaluated against every device in the cluster.
+      # DRA drivers expose hardware health attributes.
+      # This catches GPUs with >100 uncorrectable ECC memory errors.
+
+  taint:
+    key: "hardware/gpu-degraded"          # Taint key -- follows the same conventions as node taints
+    value: "ecc-errors"                   # Human-readable reason
+    effect: NoSchedule                    # Prevent NEW workloads from using this GPU
+                                          # Existing workloads keep running (use NoExecute to evict)
+                                          # Dev pods can add a matching toleration to use degraded GPUs

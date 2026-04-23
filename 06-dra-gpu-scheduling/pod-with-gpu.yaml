@@ -1,0 +1,46 @@
+# Pod with GPU via DRA ResourceClaim
+#
+# This pod references a ResourceClaim to get GPU access.
+# The DRA scheduler handles device allocation, and the kubelet's
+# PodResources API (GA in 1.36) exposes which GPU was assigned.
+#
+# Flow:
+#   1. Pod references a ResourceClaim by name
+#   2. Scheduler finds a matching device (using firstAvailable, selectors, etc.)
+#   3. Kubelet mounts the device into the container via CDI (Container Device Interface)
+#   4. PodResources gRPC API reports the allocation for billing/monitoring
+#
+# Docs:
+#   DRA overview:          https://kubernetes.io/docs/concepts/scheduling-eviction/dynamic-resource-allocation/
+#   ResourceClaim in pods:  https://kubernetes.io/docs/concepts/scheduling-eviction/dynamic-resource-allocation/#using-dynamic-resources-in-pods
+#   PodResources API:      https://kubernetes.io/docs/concepts/extend-kubernetes/compute-storage-net/device-plugins/#monitoring-device-plugin-resources
+#   CDI spec:              https://github.com/cncf-tags/container-device-interface
+#   KEP #3063 (DRA):       https://github.com/kubernetes/enhancements/tree/master/keps/sig-node/3063-dynamic-resource-allocation
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ml-training-job
+spec:
+  resourceClaims:                         # Declare which ResourceClaims this pod needs
+  - name: gpu                             # Local alias used in resources.claims below
+    resourceClaimName: ml-training-gpu    # Reference to the ResourceClaim object
+                                          # (see resourceclaim-prioritized.yaml)
+
+  containers:
+  - name: trainer
+    image: pytorch/pytorch:2.5.0-cuda12.4-cudnn9-runtime
+    resources:
+      claims:
+      - name: gpu                         # Bind the ResourceClaim to this container
+                                          # The allocated GPU is made available via CDI
+                                          # (Container Device Interface)
+    command: ["python", "train.py"]
+
+  # After scheduling, check which GPU was allocated:
+  #   kubectl get pod ml-training-job -o jsonpath='{.status.resourceClaimStatuses}'
+  #
+  # Query the PodResources API from the node (GA in 1.36):
+  #   grpcurl -plaintext localhost:10250 v1.PodResourcesListerService/List
+  #   Returns: driverName, poolName, deviceName for each allocated device
+  #   Use for: GPU billing per team, SLO tracking, capacity dashboards

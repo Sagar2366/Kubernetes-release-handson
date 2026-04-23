@@ -1,0 +1,54 @@
+# Prioritized Alternatives in Device Requests (GA in 1.36)
+#
+# Express GPU PREFERENCES with automatic fallback. The scheduler tries each
+# option in order and allocates the first one that's available.
+#
+# Before 1.36: You requested ONE specific GPU type. If unavailable, pod pending forever.
+# After 1.36:  One ResourceClaim handles heterogeneous GPU fleets automatically.
+#
+# How firstAvailable works:
+#   1. Scheduler evaluates the first request (H100 with 80GB+)
+#   2. If no H100 available, tries the second (A100 with 40GB+)
+#   3. If no A100 available, falls back to the third (2x T4)
+#   4. If nothing matches, pod stays pending (normal scheduling behavior)
+#
+# Docs:
+#   DRA overview:          https://kubernetes.io/docs/concepts/scheduling-eviction/dynamic-resource-allocation/
+#   ResourceClaim API:     https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/resource-claim-v1/
+#   KEP #4816:             https://github.com/kubernetes/enhancements/tree/master/keps/sig-node/4816-dra-prioritized-alternatives
+#   Device classes:        https://kubernetes.io/docs/concepts/scheduling-eviction/dynamic-resource-allocation/#deviceclass
+#   CEL for device selection: https://kubernetes.io/docs/reference/using-api/cel/
+
+apiVersion: resource.k8s.io/v1                   # DRA API -- resource.k8s.io
+kind: ResourceClaim
+metadata:
+  name: ml-training-gpu
+spec:
+  devices:
+    requests:
+    - name: gpu
+      firstAvailable:                             # KEY FIELD: ordered preference list
+
+      # 1st choice: NVIDIA H100 with 80GB+ VRAM
+      - request:
+          deviceClassName: nvidia-h100            # DeviceClass managed by NVIDIA DRA driver
+                                                  # Docs: https://kubernetes.io/docs/concepts/scheduling-eviction/dynamic-resource-allocation/#deviceclass
+          selectors:
+          - cel:
+              expression: "device.attributes['memory'].compareTo(quantity('80Gi')) >= 0"
+              # CEL expression filtering devices by attribute.
+              # DRA drivers expose device attributes (memory, compute capability, etc.)
+              # quantity() is a CEL function for comparing Kubernetes resource quantities.
+
+      # 2nd choice: NVIDIA A100 with 40GB+ VRAM
+      - request:
+          deviceClassName: nvidia-a100
+          selectors:
+          - cel:
+              expression: "device.attributes['memory'].compareTo(quantity('40Gi')) >= 0"
+
+      # 3rd choice: 2x NVIDIA T4 (smaller GPUs, but allocate two)
+      - request:
+          deviceClassName: nvidia-t4
+          count: 2                                # Request multiple devices in a single alternative
+                                                  # Scheduler ensures both T4s are on the same node

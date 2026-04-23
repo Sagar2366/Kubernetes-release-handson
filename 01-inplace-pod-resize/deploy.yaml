@@ -1,0 +1,37 @@
+# In-Place Pod Vertical Scaling -- Deployment (Beta in 1.36)
+#
+# Using a Deployment (not a bare Pod) to show this works with real workloads.
+# We'll capture the container ID before and after resize to PROVE
+# the container was not restarted.
+#
+# Docs:
+#   In-place resize:     https://kubernetes.io/docs/concepts/workloads/pods/resize-container-resources/
+#   Resource management:  https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+#   KEP #1287:           https://github.com/kubernetes/enhancements/tree/master/keps/sig-node/1287-in-place-update-pod-resources
+#   Deployments:         https://kubernetes.io/docs/concepts/workloads/controllers/deployment/
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: resize-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: resize-demo
+  template:
+    metadata:
+      labels:
+        app: resize-demo
+    spec:
+      containers:
+      - name: app
+        image: nginx:1.27
+        resources:
+          # Starting small -- we'll bump these in-place
+          requests:
+            cpu: "100m"       # 0.1 CPU core
+            memory: "64Mi"    # 64 MiB RAM
+          limits:
+            cpu: "200m"       # 0.2 CPU core
+            memory: "128Mi"   # 128 MiB RAM

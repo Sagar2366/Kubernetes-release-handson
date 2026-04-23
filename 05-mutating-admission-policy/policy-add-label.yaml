@@ -1,0 +1,69 @@
+# MutatingAdmissionPolicy -- Inject Default Label via CEL (GA in 1.36)
+#
+# Injects "env: dev" label on any resource that:
+#   1. Has the label "mutator: policy" (opt-in via objectSelector)
+#   2. Does NOT already have an "env" label
+#
+# This is more realistic than matching all pods -- in production you'd
+# scope policies using label selectors or namespace selectors.
+#
+# Docs:
+#   Mutating admission:  https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/
+#   CEL in Kubernetes:   https://kubernetes.io/docs/reference/using-api/cel/
+#   KEP #3962:           https://github.com/kubernetes/enhancements/tree/master/keps/sig-api-machinery/3962-mutating-admission-policies
+#   Validating (sister):  https://kubernetes.io/docs/reference/access-authn-authz/validating-admission-policy/
+
+apiVersion: admissionregistration.k8s.io/v1      # GA in 1.36
+kind: MutatingAdmissionPolicy
+metadata:
+  name: default-labels
+spec:
+  failurePolicy: Fail             # Reject request if policy evaluation fails
+
+  matchConstraints:
+    resourceRules:
+    - apiGroups: ["*"]            # Match all API groups
+      apiVersions: ["*"]
+      resources: ["*"]            # Match all resource types
+      operations: ["CREATE"]      # Only on creation
+
+    objectSelector:               # Only match objects that DON'T have "env" label
+      matchExpressions:
+      - key: env
+        operator: DoesNotExist    # Skip objects that already have env label set
+
+  reinvocationPolicy: IfNeeded    # Re-run this policy if another mutation changes the object
+                                  # Ensures our label sticks even after other mutators run
+
+  mutations:
+  - patchType: "ApplyConfiguration"
+    applyConfiguration:
+      expression: |
+        Object{
+          metadata: Object.metadata{
+            labels: Object.metadata.labels{
+              env: "dev"
+            }
+          }
+        }
+      # CEL expression that merges "env: dev" into existing labels.
+      # Object.metadata.labels{} preserves existing labels (merge, not replace).
+
+---
+# MutatingAdmissionPolicyBinding -- scopes WHERE the policy applies
+#
+# Only applies to resources with label "mutator: policy".
+# This is the opt-in mechanism -- resources without this label are untouched.
+#
+# Docs: https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/
+
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingAdmissionPolicyBinding
+metadata:
+  name: default-labels-binding
+spec:
+  policyName: default-labels
+  matchResources:
+    objectSelector:
+      matchLabels:
+        mutator: policy           # Only apply to resources with this label

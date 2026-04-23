@@ -1,0 +1,48 @@
+# HPA Scale-to-Zero -- Deployment + Service
+#
+# Uses registry.k8s.io/hpa-example -- an official K8s test image that
+# computes sqrt() in a loop on each request, generating real CPU load.
+# Combined with the Service, this lets us port-forward and generate load.
+#
+# Docs:
+#   HPA walkthrough:  https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale-walkthrough/
+#   Deployments:      https://kubernetes.io/docs/concepts/workloads/controllers/deployment/
+#   Services:         https://kubernetes.io/docs/concepts/services-networking/service/
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hpa-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hpa-demo
+  template:
+    metadata:
+      labels:
+        app: hpa-demo
+    spec:
+      containers:
+      - name: app
+        image: registry.k8s.io/hpa-example    # Official K8s HPA test image
+                                               # Each HTTP request triggers CPU-heavy computation
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            cpu: "50m"                         # Low request so HPA triggers quickly
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hpa-demo
+spec:
+  selector:
+    app: hpa-demo
+  ports:
+  - port: 80
+    targetPort: 80
+    protocol: TCP
+    name: http
