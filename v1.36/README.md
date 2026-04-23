@@ -37,6 +37,35 @@ Define mutation rules using **CEL expressions** directly in the API, replacing t
 
 Dynamic Resource Allocation brings structured device management to Kubernetes. New in 1.36: **prioritized alternatives** (fall back from H100 → A100 → 2xT4), **device taints** (quarantine degraded GPUs), and **partitionable devices** (MIG slices). Requires GPU hardware -- this folder contains reference YAMLs only.
 
+Breaking: Metric Renames
+"Two metrics got renamed to match Prometheus conventions:
+
+volume_operation_total_errors --> volume_operation_errors_total
+etcd_bookmark_counts --> etcd_bookmark_total
+If you have dashboards or alerts on these, update them BEFORE upgrading."
+
+Breaking: StrictIPCIDRValidation Enabled by Default
+"IPs with leading zeros like 010.000.000.005 and ambiguous CIDRs like 192.168.0.5/24 are now REJECTED by the API server. If you have manifests or Helm charts with these patterns, they'll fail on 1.36."
+
+Deprecation: Service externalIPs
+"Service .spec.externalIPs is deprecated. This has been a security concern since CVE-2020-8554. Removal is planned for v1.43, so you have time, but start migrating now."
+
+Removal: In-tree Portworx Plugin
+"The in-tree Portworx volume plugin is gone. CSI migration is complete. If you're still on in-tree Portworx, you must migrate before upgrading."
+
+Removal: gitRepo Volume Plugin
+"gitRepo volumes are permanently disabled now. They were deprecated since v1.11 due to security risks -- the git clone runs as root. Use init containers instead."
+
+Retirement: Ingress NGINX
+"The SIG Network and Security Response Committee officially retired Ingress NGINX on March 24, 2026. If you haven't moved to Gateway API yet, the clock is ticking."
+
+Other Breaking Changes
+" - MaxUnavailableStatefulSet is disabled by default (regression fix)
+
+Audit log rotation defaults changed -- maxage now 366 days
+client-go AtomicFIFO changes informer timing behavior
+Scheduler PreBind plugin API changed"
+
 ## Prerequisites
 
 - [kind](https://kind.sigs.k8s.io/docs/user/quick-start/#installation) v0.20+
